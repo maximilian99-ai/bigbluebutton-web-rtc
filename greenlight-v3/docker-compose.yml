@@ -1,0 +1,74 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:14.6-alpine3.17
+    container_name: postgres
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres/14/database_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=424e26a4c3b8b05833af73b9ba68731ac46e915b5e3125b6
+
+  redis:
+    image: redis:6.2-alpine3.17
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - ./data/redis/database_data:/data
+
+  greenlight-v3:
+    entrypoint: [bin/start]
+    image: bigbluebutton/greenlight:v3
+    container_name: greenlight-v3
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - 127.0.0.1:5050:3000
+    logging:
+      driver: journald
+    volumes:
+      - ./data/greenlight-v3/storage:/usr/src/app/storage
+      - ./ko_KR.json:/usr/src/app/app/assets/locales/ko_KR.json
+      - ./HomePage.jsx:/usr/src/app/app/javascript/components/home/HomePage.jsx 
+      - ./Logo.jsx:/usr/src/app/app/javascript/components/shared_components/Logo.jsx
+      - ./Footer.jsx:/usr/src/app/app/javascript/components/shared_components/Footer.jsx
+      - ./App.jsx:/usr/src/app/app/javascript/App.jsx 
+      - ./application.html.erb:/usr/src/app/app/views/layouts/application.html.erb
+      - ./RubyOnRails/rooms_controller.rb:/usr/src/app/app/controllers/api/v1/rooms_controller.rb
+      - ./React/CreateRoomForm.jsx:/usr/src/app/app/javascript/components/rooms/room/forms/CreateRoomForm.jsx
+      - ./React/hooks/useRoomForm.js:/usr/src/app/app/javascript/hooks/forms/rooms/useRoomForm.js
+      - ./React/JoinCard.jsx:/usr/src/app/app/javascript/components/rooms/room/join/JoinCard.jsx
+      - ./React/hooks/useRoomJoinForm.js:/usr/src/app/app/javascript/hooks/forms/rooms/useRoomJoinForm.js
+      - ./React/hooks/useRoomStatus.jsx:/usr/src/app/app/javascript/hooks/mutations/rooms/useRoomStatus.jsx
+      - ./RubyOnRails/meetings_controller.rb:/usr/src/app/app/controllers/api/v1/meetings_controller.rb
+      - ./React/RoomCard.jsx:/usr/src/app/app/javascript/components/rooms/RoomCard.jsx
+      
+  
+    depends_on:
+      - postgres
+      - redis
+
+  keycloak:
+    command: start
+    image: quay.io/keycloak/keycloak:20.0
+    container_name: keycloak
+    restart: unless-stopped
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=14ea401e0d66ecee3c84c5ad
+      - KC_DB=postgres
+      - KC_DB_URL_HOST=postgres
+      - KC_DB_USERNAME=postgres
+      - KC_DB_URL_DATABASE=keycloakdb
+      - KC_DB_PASSWORD=424e26a4c3b8b05833af73b9ba68731ac46e915b5e3125b6
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_RELATIVE_PATH=/keycloak
+      - KC_PROXY=edge
+    ports:
+      - 127.0.0.1:5151:8080
+    logging:
+      driver: journald
+    depends_on:
+      - postgres
